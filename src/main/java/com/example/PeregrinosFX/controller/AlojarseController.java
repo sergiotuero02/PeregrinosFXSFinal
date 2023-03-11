@@ -201,6 +201,8 @@ public class AlojarseController implements Initializable {
     private void alojar(ActionEvent event) throws IOException {
         Peregrino peregrino = (Peregrino) peregrinoCB.getSelectionModel().getSelectedItem();
         Parada parada = (Parada) paradaCB.getSelectionModel().getSelectedItem();
+        boolean envio = false;
+
         //estanciaServiceImpl.alojar(peregrino, parada, estanciaCheck, vipCB, servicioTB, pagosCB, extraTF, totalLBL);
         try {
             //Llamamos al método alojarse que nos va añadir un campo a la tabla peregrino_parada con el peregrino y la parada seleccionados
@@ -228,25 +230,34 @@ public class AlojarseController implements Initializable {
                     e.setPeregrino(peregrino);
 
                 }
-                if(servicioTB.getItems().size()>0){
-                    if(pagosCB.getSelectionModel().getSelectedItem().equals(null)){
+                if (servicioTB.getItems().size() > 0) {
+                    if (pagosCB.getSelectionModel().getSelectedItem().equals(null)) {
                         Alert alert = new Alert(Alert.AlertType.ERROR);
                         alert.setTitle("ERROR");
                         alert.setHeaderText(null);
                         alert.setContentText("Introduzca un método de pago");
                         alert.showAndWait();
-                    }else{
+                    } else {
                         ArrayList<Servicio> servicios = new ArrayList<Servicio>();
-                        for(Object o : servicioTB.getItems()){
+                        for (Object o : servicioTB.getItems()) {
                             Servicio s = (Servicio) o;
                             servicios.add(s);
                         }
+
+
                         ConjuntoContratado cc = new ConjuntoContratado();
                         cc.setEstancia(e);
                         cc.setExtra(extraTF.getText());
                         cc.setServicios(servicios);
                         cc.setPrecioTotal(Double.parseDouble(totalLBL.getText()));
                         cc.setModoPago(pagosCB.getSelectionModel().getSelectedItem().toString().charAt(0));
+                        for (Servicio s : cc.getServicios()) {
+                            if (s.getNombre().equals("Envio a casa")) {
+                                envio = true;
+                            } else {
+                                envio = false;
+                            }
+                        }
                         db.store(cc);
 
                         Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -254,7 +265,9 @@ public class AlojarseController implements Initializable {
                         alert.setHeaderText(null);
                         alert.setContentText("Se le ha asignado el paquete de servicios " + cc);
                         alert.showAndWait();
-                    }}else{
+
+                    }
+                } else {
                     estanciaServiceImpl.addEstancia(e);
                     carnetService.addCarnet(peregrino.getCarnet());
                 }
@@ -264,26 +277,29 @@ public class AlojarseController implements Initializable {
                 alert.setHeaderText(null);
                 alert.setContentText("El peregrino " + peregrino.getNombre() + " ha realizado la parada correctamente.");
                 alert.showAndWait();
-
-                //En función del perfil/rol redirigiremos al usuario hacia el menú correspondiente
-                if (rol == 2) {
-                    stageManager.switchScene(FxmlView.MENUADMINPARADA);
-                }
-                if (rol == 3) {
-                    stageManager.switchScene(FxmlView.MENUADMINGENERAL);
+                if (envio) {
+                    stageManager.switchScene(FxmlView.ENVIO);
+                } else {
+                    if (rol == 2) {
+                        stageManager.switchScene(FxmlView.MENUADMINPARADA);
+                    }
+                    if (rol == 3) {
+                        stageManager.switchScene(FxmlView.MENUADMINGENERAL);
+                    }
                 }
             }
+
         } catch (NullPointerException e) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Introduzca todos los campos");
             alert.setHeaderText(null);
             alert.setContentText("Introduzca todos los campos");
-            alert.showAndWait();
+            alert.show();
         }
     }
 
     @FXML
-    private void servicioSelected(ActionEvent event) throws IOException{
+    private void servicioSelected(ActionEvent event) throws IOException {
         serviciosCB.getItems().clear();
         servicioTB.getItems().clear();
         Servicio servicio = new Servicio();
@@ -299,6 +315,7 @@ public class AlojarseController implements Initializable {
 
         }
     }
+
     //Método que activa o desactiva el campo vip en función de si hay estancia o no
     @FXML
     private void estanciaClick(ActionEvent event) throws IOException {
@@ -317,7 +334,7 @@ public class AlojarseController implements Initializable {
             extraTF.setDisable(false);
             extraLBL.setTextFill(Paint.valueOf("45322e"));
 
-    } else {
+        } else {
             vipLBL.setTextFill(Paint.valueOf("45322e70"));
             vipCB.setDisable(true);
             servicioLBL.setTextFill(Paint.valueOf("45322e70"));
@@ -334,7 +351,7 @@ public class AlojarseController implements Initializable {
     }
 
     @FXML
-    private void addServicio(ActionEvent event){
+    private void addServicio(ActionEvent event) {
         Servicio servicio = (Servicio) serviciosCB.getSelectionModel().getSelectedItem();
 
         try {
@@ -358,9 +375,9 @@ public class AlojarseController implements Initializable {
             } else if (!servicioSel && servicio != null) {
                 servicioTB.getItems().add(servicio);
                 String precio = totalLBL.getText();
-                if(precio.equals("")){
+                if (precio.equals("")) {
                     totalLBL.setText(String.valueOf(servicio.getPrecio()));
-                }else {
+                } else {
                     Double total = Double.parseDouble(precio) + servicio.getPrecio();
                     totalLBL.setText(String.valueOf(total));
                 }
